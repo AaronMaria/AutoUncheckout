@@ -104,3 +104,5 @@ $RECYCLE.BIN/
 
 # ide temp
 *.sln.ide/
+/.vs
+/src/.vs

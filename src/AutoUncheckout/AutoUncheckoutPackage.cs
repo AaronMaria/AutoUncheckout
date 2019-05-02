@@ -1,8 +1,10 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Threading;
 using EnvDTE;
 using Microsoft.TeamFoundation.Client;
 using Microsoft.TeamFoundation.VersionControl.Client;
@@ -26,13 +28,13 @@ namespace KulikovDenis.AutoUncheckout
 	/// </summary>
 	// This attribute tells the PkgDef creation utility (CreatePkgDef.exe) that this class is
 	// a package.
-	[PackageRegistration(UseManagedResourcesOnly = true)]
+	[PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
 	// This attribute is used to register the information needed to show this package
 	// in the Help/About dialog of Visual Studio.
 	[InstalledProductRegistration("#110", "#112", "1.0", IconResourceID = 400)]
 	[Guid(GuidList.guidAutoUncheckoutPkgString)]
-	[ProvideAutoLoad(Constants.vsContextNoSolution)]
-	public sealed class AutoUncheckoutPackage : Package, IVsShellPropertyEvents
+	[ProvideAutoLoad(Constants.vsContextNoSolution, PackageAutoLoadFlags.BackgroundLoad)]
+	public sealed class AutoUncheckoutPackage : AsyncPackage, IVsShellPropertyEvents
 	{
 		private uint _cookie;
 		private MD5CryptoServiceProvider _md5Provider;
@@ -58,8 +60,7 @@ namespace KulikovDenis.AutoUncheckout
 		/// Initialization of the package; this method is called right after the package is sited, so this is the place
 		/// where you can put all the initialization code that rely on services provided by VisualStudio.
 		/// </summary>
-		protected override void Initialize()
-		{
+		protected override async System.Threading.Tasks.Task InitializeAsync(CancellationToken cancellationToken, IProgress<ServiceProgressData> progress) {
 			Debug.WriteLine (string.Format(CultureInfo.CurrentCulture, "Entering Initialize() of: {0}", this.ToString()));
 			base.Initialize();
 
@@ -68,7 +69,7 @@ namespace KulikovDenis.AutoUncheckout
 
 			if (shellService != null)
 				ErrorHandler.ThrowOnFailure(shellService.AdviseShellPropertyChanges(this, out _cookie));
-			var serviceProvider = GetGlobalService(typeof (IServiceProvider)) as IServiceProvider;
+			var serviceProvider = GetGlobalService(typeof (Microsoft.VisualStudio.OLE.Interop.IServiceProvider)) as Microsoft.VisualStudio.OLE.Interop.IServiceProvider;
 			Rdt = new RunningDocumentTable(new ServiceProvider(serviceProvider));
 			Rdt.Advise(new SaveListener(this));
 		}
